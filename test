@@ -1,0 +1,47 @@
+import network
+import mnist_loader
+import torch
+import torch.optim as optim
+import torch.nn as nn
+
+training_data, validation_data, test_data = mnist_loader.load_data_wrapper()
+training_data = list(training_data)
+test_data = list(test_data)
+
+training_inputs, training_labels = zip(*training_data)
+training_inputs = torch.tensor(training_inputs)
+training_inputs = training_inputs.view(50000, 1, 784)
+training_labels = torch.tensor(training_labels, dtype=torch.float)
+training_labels = training_labels.view(50000, 1, 10)
+
+test_inputs, test_labels = zip(*test_data)
+test_inputs = torch.tensor(test_inputs)
+test_inputs = test_inputs.view(10000, 1, 784)
+test_labels = torch.tensor(test_labels, dtype=torch.long)
+test_labels = test_labels.view(10000,1)
+
+net = network.Network()
+criterion = nn.MSELoss()
+optimizer = optim.SGD(net.parameters(), lr=1.5)
+
+def compute_accuracy(test_inputs, test_labels):
+    with torch.no_grad():
+        outputs = net(test_inputs)
+        _, predicted = torch.max(outputs.data, 2)
+        total = test_labels.size(0)
+        correct = (predicted == test_labels).sum().item()
+    return 100 * correct / total
+
+for epoch in range(50):
+    # zero the parameter gradients
+    optimizer.zero_grad()
+
+    # forward + backward + optimize
+    outputs = net(training_inputs)
+    loss = criterion(outputs, training_labels)
+    loss.backward()
+    optimizer.step()
+
+    # print statistics
+    print('[%d] loss: %.3f accuracy: %.3f' % (epoch + 1, loss.item(), compute_accuracy(test_inputs, test_labels)))
+
